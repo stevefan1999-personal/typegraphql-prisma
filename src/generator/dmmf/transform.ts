@@ -14,7 +14,10 @@ import { DmmfDocument } from "./dmmf-document";
 import pluralize from "pluralize";
 import { GenerateCodeOptions } from "../options";
 import { supportedQueryActions, supportedMutationActions } from "../config";
-import { generateImportAliasFromScalar } from "../../utils/gen-import-alias";
+import {
+  defaultCustomScalarSymbol,
+  generateImportAliasFromScalar,
+} from "../../utils/gen-import-alias";
 
 export function transformSchema(
   datamodel: PrismaDMMF.Schema,
@@ -104,7 +107,7 @@ function transformField(dmmfDocument: DmmfDocument) {
       // then we assume it is using our unique custom scalar alias
       const {
         field: { importName: fieldImportName, module: fieldModule } = {},
-        graphql: { importName: graphqlImportName } = {},
+        graphql: { importName: graphqlImportName, module: graphqlModule } = {},
       } = (dmmfDocument.options.customScalar ?? {})[customScalarName];
       if (fieldImportName) {
         // if there is the field module name, we can affirm that this must be an importable
@@ -118,10 +121,13 @@ function transformField(dmmfDocument: DmmfDocument) {
       // now if it is for graphql, we are almost certainly going to import something,
       // otherwise it defeats the purpose of having custom scalars
       if (graphqlImportName) {
-        typeGraphQLType = generateImportAliasFromScalar(
-          customScalarName,
-          graphqlImportName,
-        );
+        typeGraphQLType =
+          graphqlModule === defaultCustomScalarSymbol
+            ? `GraphQLScalars.GraphQL${graphqlImportName}`
+            : generateImportAliasFromScalar(
+                customScalarName,
+                graphqlImportName,
+              );
       }
     }
 

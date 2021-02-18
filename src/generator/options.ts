@@ -5,7 +5,7 @@ export interface CustomScalarOptions {
   };
   graphql: {
     importName: string;
-    module: string;
+    module: string | Symbol;
   };
 }
 
@@ -18,5 +18,6 @@ export interface GenerateCodeOptions {
   absolutePrismaOutputPath?: string;
   simpleResolvers?: boolean;
   useUncheckedScalarInputs?: boolean;
+  useDefaultCustomScalars?: boolean;
   customScalar?: Record<string, CustomScalarOptions>;
 }

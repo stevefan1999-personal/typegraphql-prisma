@@ -4,11 +4,64 @@ import { promises as asyncFs } from "fs";
 import path from "path";
 import { unflatten } from "flat";
 import _ from "lodash";
+import { defaultCustomScalarSymbol } from "../utils/gen-import-alias";
 
 import generateCode from "../generator/generate-code";
 import removeDir from "../utils/removeDir";
 import { GenerateCodeOptions, CustomScalarOptions } from "../generator/options";
 import { toUnixPath } from "../generator/helpers";
+
+const defaultGraphqlScalars: [string, CustomScalarOptions][] = [
+  "Date",
+  "Time",
+  "DateTime",
+  "Duration",
+  "UtcOffset",
+  "LocalDate",
+  "LocalTime",
+  "LocalEndTime",
+  "EmailAddress",
+  "NegativeFloat",
+  "NegativeInt",
+  "NonEmptyString",
+  "NonNegativeFloat",
+  "NonNegativeInt",
+  "NonPositiveFloat",
+  "NonPositiveInt",
+  "PhoneNumber",
+  "PositiveFloat",
+  "PositiveInt",
+  "PostalCode",
+  "UnsignedFloat",
+  "UnsignedInt",
+  "URL",
+  "ObjectID",
+  "BigInt",
+  "Long",
+  "SafeInt",
+  "UUID",
+  "GUID",
+  "HexColorCode",
+  "HSL",
+  "HSLA",
+  "IPv4",
+  "IPv6",
+  "ISBN",
+  "MAC",
+  "Port",
+  "RGB",
+  "RGBA",
+  "USCurrency",
+  "Currency",
+  "JSON",
+  "JSONObject",
+  "Byte",
+  "Void",
+].map(x => [
+  x,
+  { graphql: { importName: x, module: defaultCustomScalarSymbol } },
+]);
+const defaultCustomScalars = [...defaultGraphqlScalars];
 
 function parseStringBoolean(stringBoolean: string | undefined) {
   return stringBoolean ? stringBoolean === "true" : undefined;
@@ -68,7 +121,13 @@ export async function generate(options: GeneratorOptions) {
     useUncheckedScalarInputs: parseStringBoolean(
       generatorConfig.useUncheckedScalarInputs,
     ),
-    customScalar: resolveCustomScalar(customScalar),
+    customScalar: _.merge(
+      resolveCustomScalar(customScalar),
+      // by default we import the custom scalars from graphql-scalars
+      generatorConfig.useDefaultCustomScalars ?? true
+        ? Object.fromEntries(defaultCustomScalars)
+        : {},
+    ),
   };
 
   if (config.emitDMMF) {

@@ -78,15 +78,17 @@ export function generateCustomScalarsImport(
         ],
       });
     }
-    sourceFile.addImportDeclaration({
-      moduleSpecifier: graphql.module,
-      namedImports: [
-        {
-          name: graphql.importName,
-          alias: generateImportAliasFromScalar(key, graphql.importName),
-        },
-      ],
-    });
+    if (typeof graphql.module === "string") {
+      sourceFile.addImportDeclaration({
+        moduleSpecifier: graphql.module,
+        namedImports: [
+          {
+            name: graphql.importName,
+            alias: generateImportAliasFromScalar(key, graphql.importName),
+          },
+        ],
+      });
+    }
   }
 }
 

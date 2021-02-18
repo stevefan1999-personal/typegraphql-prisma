@@ -7,3 +7,4 @@ export function generateImportAliasFromScalar(
 ) {
   return `__${scalarName}__${importName}`;
 }
+export const defaultCustomScalarSymbol = Symbol.for("DEFAULT_CUSTOM_SCALAR");
