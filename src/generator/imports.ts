@@ -18,7 +18,6 @@ import {
 } from "./config";
 import { GenerateMappingData } from "./types";
 import { GenerateCodeOptions } from "./options";
-import { values } from "underscore";
 import { generateImportAliasFromScalar } from "../utils/gen-import-alias";
 
 export function generateTypeGraphQLImport(sourceFile: SourceFile) {
@@ -64,22 +63,27 @@ export function generateCustomScalarsImport(
       path.posix.join(...Array(level).fill(".."), "scalars"),
     namedImports: ["DecimalJSScalar"],
   });
-  for (const [key, value] of Object.entries(options.customScalar ?? {})) {
+  for (const [key, { field, graphql }] of Object.entries(
+    options.customScalar ?? {},
+  )) {
+    // we didn't found module -- probably from a global imports
+    if (field?.importName && field?.module) {
+      sourceFile.addImportDeclaration({
+        moduleSpecifier: field.module,
+        namedImports: [
+          {
+            name: field.importName,
+            alias: generateImportAliasFromScalar(key, field.importName),
+          },
+        ],
+      });
+    }
     sourceFile.addImportDeclaration({
-      moduleSpecifier: value.field!.module!,
+      moduleSpecifier: graphql.module,
       namedImports: [
         {
-          name: value.field!.type!,
-          alias: generateImportAliasFromScalar(key, value.field!.type!),
-        },
-      ],
-    });
-    sourceFile.addImportDeclaration({
-      moduleSpecifier: value.graphql!.module!,
-      namedImports: [
-        {
-          name: value.graphql!.type!,
-          alias: generateImportAliasFromScalar(key, value.graphql!.type!),
+          name: graphql.importName,
+          alias: generateImportAliasFromScalar(key, graphql.importName),
         },
       ],
     });

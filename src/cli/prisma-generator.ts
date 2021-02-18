@@ -3,7 +3,7 @@ import { DMMF as PrismaDMMF } from "@prisma/client/runtime";
 import { promises as asyncFs } from "fs";
 import path from "path";
 import { unflatten } from "flat";
-import _ from "underscore";
+import _ from "lodash";
 
 import generateCode from "../generator/generate-code";
 import removeDir from "../utils/removeDir";
@@ -18,27 +18,15 @@ function resolveCustomScalar(
   oldCustomScalar?: Record<string, CustomScalarOptions>,
 ): Record<string, CustomScalarOptions> {
   const customScalar = _.chain(oldCustomScalar ?? {})
-    // not both field and graphql entry supplied -- skip
-    .pick((value, _) => !!(value.field && value.graphql))
-    // none of the entries had field and graphql type supplied -- skip
-    .pick((value, _) => !!(value!.field!.type || value!.graphql!.type))
-    // none of the entries had field and graphql module supplied -- skip
-    .pick((value, _) => !!(value!.field!.module || value!.graphql!.module))
-    .value() as object;
+    // graphql not supplied -- skip
+    .pickBy((value, _) => !!value.graphql)
+    // graphql modules and import name not supplied -- skip
+    .pickBy(
+      (value, _) =>
+        !!(!!value!.graphql!.module && !!value!.graphql!.importName),
+    )
+    .value() as Record<string, CustomScalarOptions>;
 
-  for (const [_, value] of Object.entries(customScalar ?? {})) {
-    // one of the entry has type name -- automatic deduction from the entry with non empty module name
-    if (!!value.field.type !== !!value.graphql.type) {
-      value.graphql.type = value.graphql.type ?? value.field.type;
-      value.field.type = value.field.type ?? value.graphql.type;
-    }
-
-    // ditto
-    if (!!value.field.module !== !!value.graphql.module) {
-      value.graphql.module = value.graphql.module ?? value.field.module;
-      value.field.module = value.field.module ?? value.graphql.module;
-    }
-  }
   return customScalar as Record<string, CustomScalarOptions>;
 }
 
@@ -59,7 +47,7 @@ export async function generate(options: GeneratorOptions) {
   }: {
     customScalar?: Record<string, CustomScalarOptions>;
   } = unflatten(
-    _.pick(generatorConfig, (_: string, key: string) =>
+    _.pickBy(generatorConfig, (_: string, key: string) =>
       key.startsWith("customScalar"),
     ),
     { delimiter: "_" },

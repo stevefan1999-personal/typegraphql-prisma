@@ -1,11 +1,12 @@
-export interface CustomScalarOptionEntry {
-  type?: string;
-  module?: string;
-}
-
 export interface CustomScalarOptions {
-  field?: CustomScalarOptionEntry;
-  graphql?: CustomScalarOptionEntry;
+  field?: {
+    importName?: string;
+    module?: string;
+  };
+  graphql: {
+    importName: string;
+    module: string;
+  };
 }
 
 export interface GenerateCodeOptions {

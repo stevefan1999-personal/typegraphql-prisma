@@ -87,7 +87,9 @@ function transformField(dmmfDocument: DmmfDocument) {
       isList: field.isList,
       type: field.type,
     };
-    const { name = undefined } = parseDocumentationAttributes<{
+    const {
+      name: customScalarName = undefined,
+    } = parseDocumentationAttributes<{
       name?: string;
     }>(field.documentation, "scalar", "field");
 
@@ -95,21 +97,35 @@ function transformField(dmmfDocument: DmmfDocument) {
     let typeGraphQLType: string | null = null;
 
     // if we have found the custom scalar name from the options
-    if (name) {
+    if (
+      customScalarName &&
+      customScalarName in (dmmfDocument.options.customScalar ?? {})
+    ) {
       // then we assume it is using our unique custom scalar alias
       const {
-        field: { type: fieldType } = {},
-        graphql: { type: graphqlType } = {},
-      } = (dmmfDocument.options.customScalar ?? {})[name];
-      if (fieldType) {
-        fieldTSType = generateImportAliasFromScalar(name, fieldType);
+        field: { importName: fieldImportName, module: fieldModule } = {},
+        graphql: { importName: graphqlImportName } = {},
+      } = (dmmfDocument.options.customScalar ?? {})[customScalarName];
+      if (fieldImportName) {
+        // if there is the field module name, we can affirm that this must be an importable
+        // then we can safely assume to use the unique alias, otherwise be conservative and just use the bare import name
+        // to cover cases like DateTime which does not require import (implied by global declaration however)
+        fieldTSType = fieldModule
+          ? generateImportAliasFromScalar(customScalarName, fieldImportName)
+          : fieldImportName;
       }
-      if (graphqlType) {
-        typeGraphQLType = generateImportAliasFromScalar(name, graphqlType);
+
+      // now if it is for graphql, we are almost certainly going to import something,
+      // otherwise it defeats the purpose of having custom scalars
+      if (graphqlImportName) {
+        typeGraphQLType = generateImportAliasFromScalar(
+          customScalarName,
+          graphqlImportName,
+        );
       }
     }
 
-    // otherwise, revert to use default type resolution scheme
+    // otherwise, revert to use default type resolution scheme, i.e. from prisma types
     if (!fieldTSType) {
       fieldTSType = getFieldTSType(
         dmmfDocument,
